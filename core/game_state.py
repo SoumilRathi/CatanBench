@@ -39,24 +39,62 @@ class GameStateExtractor:
             Dictionary containing all relevant game state information
         """
         state = game.state
+
+        print("HELLO")
+
+        game_info = self._extract_game_info(state)
+        print(game_info)
+
+        board_state = self._extract_board_state(state)
+        print(board_state)
+
+        current_player = self._extract_player_state(state, current_player_color, detailed=True)
+        print(current_player)
+
+        opponents = self._extract_opponents_state(state, current_player_color)
+        print(opponents)
+
+        resources_and_cards = self._extract_resources_info(state)
+        print(resources_and_cards)
+
+        strategic_context = self._extract_strategic_context(state, current_player_color)
+        print(strategic_context)
+
+        turn_context = self._extract_turn_context(state)
+        print(turn_context)
         
         return {
-            "game_info": self._extract_game_info(state),
-            "board_state": self._extract_board_state(state),
-            "current_player": self._extract_player_state(state, current_player_color, detailed=True),
-            "opponents": self._extract_opponents_state(state, current_player_color),
-            "resources_and_cards": self._extract_resources_info(state),
-            "strategic_context": self._extract_strategic_context(state, current_player_color),
-            "turn_context": self._extract_turn_context(state)
+            "game_info": game_info,
+            "board_state": board_state,
+            "current_player": current_player,
+            "opponents": opponents,
+            "resources_and_cards": resources_and_cards,
+            "strategic_context": strategic_context,
+            "turn_context": turn_context
         }
     
     def _extract_game_info(self, state) -> Dict[str, Any]:
         """Extract basic game information."""
+
+        turn_number = getattr(state, 'num_turns', 0)
+
+        print(turn_number)
+
+        current_player_color = state.current_color().value
+
+        print(current_player_color)
+
+        winning_player = self._get_winning_player(state)
+        print(winning_player)
+
+        game_phase = self._determine_game_phase(state)
+        print(game_phase)
+
         return {
-            "turn_number": getattr(state, 'num_turns', 0),
-            "current_player_color": state.current_color().value,
-            "winning_player": self._get_winning_player(state),
-            "game_phase": self._determine_game_phase(state)
+            "turn_number": turn_number,
+            "current_player_color": current_player_color,
+            "winning_player": winning_player,
+            "game_phase": game_phase
         }
     
     def _extract_board_state(self, state) -> Dict[str, Any]:
@@ -201,10 +239,14 @@ class GameStateExtractor:
         tiles = []
         if hasattr(board, 'map') and hasattr(board.map, 'tiles'):
             for coordinate, tile in board.map.tiles.items():
+                # Skip ports - only include actual resource tiles
+                if not hasattr(tile, 'number'):
+                    continue
+                    
                 tiles.append({
                     "coordinate": coordinate,
-                    "resource": tile.resource,
-                    "number": tile.number,
+                    "resource": getattr(tile, 'resource', None),
+                    "number": getattr(tile, 'number', None),
                     "has_robber": getattr(board, 'robber_coordinate', None) == coordinate
                 })
         return tiles
@@ -284,20 +326,30 @@ class GameStateExtractor:
     def _get_winning_player(self, state) -> Optional[str]:
         """Get winning player if game is over."""
         for color in [Color.RED, Color.BLUE, Color.WHITE, Color.ORANGE]:
-            vp = state.player_state[player_key(state, color)].get("VICTORY_POINTS", 0)
+            key = player_key(state, color) + "_VICTORY_POINTS"
+            # print("STATE SO FAR", state.player_state)
+            # print("KEY", key)
+            vp = state.player_state[key]
             if vp >= 10:
                 return color.value
         return None
     
     def _determine_game_phase(self, state) -> str:
         """Determine what phase the game is in."""
+
+        # print(state, state.current_prompt)
+
         if state.current_prompt in [ActionPrompt.BUILD_INITIAL_SETTLEMENT, ActionPrompt.BUILD_INITIAL_ROAD]:
             return "setup"
         
+        print("HERE")
+
         max_vp = max(
-            state.player_state[player_key(state, color)].get("VICTORY_POINTS", 0)
+            state.player_state[player_key(state, color) + "_VICTORY_POINTS"]
             for color in [Color.RED, Color.BLUE, Color.WHITE, Color.ORANGE]
         )
+
+        print(max_vp)
         
         if max_vp < 5:
             return "early"

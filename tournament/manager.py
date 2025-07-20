@@ -15,8 +15,8 @@ from pathlib import Path
 
 from catanatron import Game
 from catanatron.models.player import Color
-from catanbench.core.llm_player import LLMPlayer
-from catanbench.utils.logging import setup_tournament_logging
+from core.llm_player import LLMPlayer
+from utils.logging import setup_tournament_logging
 
 
 class TournamentManager:

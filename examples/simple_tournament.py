@@ -13,10 +13,10 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from catanbench.tournament.manager import TournamentManager
-from catanbench.llm_clients.openai_client import OpenAIClient
-from catanbench.llm_clients.claude_client import ClaudeClient
-from catanbench.llm_clients.gemini_client import GeminiClient
+from tournament.manager import TournamentManager
+from llm_clients.openai_client import OpenAIClient
+from llm_clients.claude_client import ClaudeClient
+from llm_clients.gemini_client import GeminiClient
 
 
 def main():

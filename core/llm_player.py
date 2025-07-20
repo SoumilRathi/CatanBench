@@ -5,6 +5,7 @@ This module provides the base LLMPlayer class that integrates with various
 LLM clients to make strategic decisions in Settlers of Catan.
 """
 
+import traceback
 import json
 import logging
 import random
@@ -91,15 +92,23 @@ class LLMPlayer(Player):
         try:
             # Extract game state information
             game_state = self.game_state_extractor.extract_state(game, self.color)
+
+            print(game_state)
             
             # Convert actions to descriptions
             action_descriptions = self.action_parser.describe_actions(playable_actions)
+
+            print(playable_actions, action_descriptions)
             
             # Create prompt for LLM
             prompt = self._create_decision_prompt(game_state, action_descriptions)
+
+            print(prompt)
             
             # Query LLM with retry logic
             selected_action = self._query_llm_with_retry(prompt, playable_actions)
+
+            print(selected_action)
             
             # Update statistics
             decision_time = time.time() - start_time
@@ -110,7 +119,8 @@ class LLMPlayer(Player):
             
         except Exception as e:
             # Fallback to random action on any error
-            self.logger.error(f"Decision failed: {e}, using fallback")
+            tb = traceback.format_exc()
+            self.logger.error(f"Decision failed: {e}\nTraceback:\n{tb}\nUsing fallback action.")
             decision_time = time.time() - start_time
             self._update_stats(decision_time, success=False)
             return self._fallback_action(playable_actions)

@@ -25,30 +25,100 @@ A comprehensive benchmark system for evaluating Large Language Models (LLMs) pla
    # Edit .env with your API keys
    ```
 
-3. **Run a Simple Game**:
-   ```python
-   from catanbench.tournament.manager import TournamentManager
-   from catanbench.llm_clients.openai_client import OpenAIClient
-   from catanbench.llm_clients.claude_client import ClaudeClient
-   
-   # Create tournament with GPT-4 vs Claude
-   tournament = TournamentManager()
-   tournament.add_player("GPT-4", OpenAIClient("gpt-4"))
-   tournament.add_player("Claude", ClaudeClient("claude-3-sonnet"))
-   tournament.run_tournament(games_per_matchup=5)
+3. **Run a Simple Tournament**:
+   ```bash
+   python examples/simple_tournament.py
    ```
 
-## Architecture
+4. **Test the System**:
+   ```bash
+   python test_benchmark.py
+   ```
+
+## Codebase Architecture & Navigation
+
+### 📁 **Core Components**
+
+#### `core/` - Main LLM Player Implementation
+- **`llm_player.py`** - The main `LLMPlayer` class that integrates LLMs with Catanatron
+  - Handles decision-making loop: game state → prompt → LLM → action
+  - Includes retry logic, error handling, and performance tracking
+  - Main entry point: `decide(game, playable_actions)` method
+
+- **`game_state.py`** - Game state extraction and serialization
+  - `GameStateExtractor` class converts complex Catan state to LLM-friendly JSON
+  - Extracts: player resources, board tiles, buildings, strategic context
+  - Key method: `extract_state(game, current_player_color)`
+
+- **`action_parser.py`** - Action descriptions and parsing
+  - `ActionParser` class converts Catanatron actions to human-readable text
+  - Handles all action types: building, trading, development cards, etc.
+  - Key method: `describe_actions(actions)` returns indexed action descriptions
+
+#### `llm_clients/` - LLM API Integrations
+- **`base_client.py`** - Abstract base class defining LLM client interface
+  - All clients must implement `query(prompt, **kwargs)` method
+  - Includes performance tracking and error handling patterns
+
+- **`openai_client.py`** - OpenAI GPT integration (GPT-4, GPT-3.5-turbo, etc.)
+- **`claude_client.py`** - Anthropic Claude integration (3.5 Sonnet, Haiku, etc.)  
+- **`gemini_client.py`** - Google Gemini integration (1.5 Pro, Flash, etc.)
+
+#### `prompts/` - Strategic Knowledge & Prompt Engineering
+- **`system_prompts.py`** - Core Catan strategy knowledge and rules
+  - Expert-level strategic advice for early/mid/late game phases
+  - Trading strategies, robber tactics, development card usage
+  - Key function: `get_system_prompt()` returns comprehensive Catan expertise
+
+- **`action_templates.py`** - Decision-making templates and examples
+  - Structured templates for different decision scenarios
+  - Few-shot examples showing optimal play patterns
+  - Phase-specific guidance (building, trading, endgame)
+
+#### `tournament/` - Tournament Management
+- **`manager.py`** - Main tournament orchestration
+  - `TournamentManager` class handles multi-game competitions
+  - Round-robin tournaments, result tracking, statistical analysis
+  - Key method: `run_tournament(games_per_matchup, format)`
+
+#### `utils/` - Utilities
+- **`logging.py`** - Tournament and game logging setup
+- Additional analysis and helper functions
+
+### 🎯 **Key Entry Points**
+
+1. **For Simple Usage**: `examples/simple_tournament.py`
+2. **For Testing**: `test_benchmark.py`  
+3. **Core LLM Player**: `core/llm_player.py` → `LLMPlayer` class
+4. **Tournament Management**: `tournament/manager.py` → `TournamentManager` class
+
+### 🔄 **How It All Works Together**
 
 ```
-catanbench/
-├── core/              # Core LLM player implementation
-├── llm_clients/       # LLM API integrations
-├── prompts/           # Prompt engineering system
-├── tournament/        # Tournament management
-├── utils/             # Utilities and analysis tools
-└── config/            # Configuration management
+1. TournamentManager creates LLMPlayer instances
+2. LLMPlayer uses GameStateExtractor to understand game state
+3. LLMPlayer uses system prompts + action templates to query LLM
+4. LLM response parsed by ActionParser back to Catanatron action
+5. Tournament tracks results, performance, and generates reports
 ```
+
+### 🛠️ **Extending the System**
+
+- **Add new LLM**: Create new client in `llm_clients/` inheriting from `BaseLLMClient`
+- **Improve strategy**: Modify prompts in `prompts/system_prompts.py`
+- **New tournament format**: Extend `TournamentManager` class
+- **Custom analysis**: Add utilities to `utils/` directory
+
+### 📊 **Output Files** 
+Results are saved in `tournament_results/`:
+- `tournament_results_*.json` - Complete game data
+- `tournament_summary_*.csv` - Game summary for analysis  
+- `tournament.log` - Execution logs
+
+### 🧪 **Testing Strategy**
+- Mock LLM clients for development (`test_benchmark.py`)
+- Real API integration tests (with cost controls)
+- Comprehensive error handling and fallback testing
 
 ## Supported LLMs
 

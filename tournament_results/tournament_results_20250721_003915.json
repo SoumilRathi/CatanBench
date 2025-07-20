@@ -1,0 +1,301 @@
+{
+  "games": [
+    {
+      "game_id": "M00_G00",
+      "matchup_index": 0,
+      "game_number": 0,
+      "players": [
+        {
+          "name": "GPT-4o-mini",
+          "type": "llm",
+          "color": "WHITE",
+          "model": "gpt-4o-mini"
+        },
+        {
+          "name": "Claude-3.5-Haiku",
+          "type": "llm",
+          "color": "ORANGE",
+          "model": "claude-3-5-haiku-20241022"
+        },
+        {
+          "name": "Gemini-1.5-Flash",
+          "type": "llm",
+          "color": "BLUE",
+          "model": "gemini-1.5-flash"
+        },
+        {
+          "name": "Random_0",
+          "type": "random",
+          "color": "RED",
+          "model": "RandomPlayer"
+        }
+      ],
+      "winner": {
+        "name": "Gemini-1.5-Flash",
+        "color": "BLUE"
+      },
+      "duration_seconds": 0.017723798751831055,
+      "player_performance": {
+        "GPT-4o-mini": {
+          "player_name": "GPT-4o-mini",
+          "total_decisions": 70,
+          "success_rate": 0.0,
+          "avg_decision_time": 2.634865897042411e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        },
+        "Claude-3.5-Haiku": {
+          "player_name": "Claude-3.5-Haiku",
+          "total_decisions": 57,
+          "success_rate": 0.0,
+          "avg_decision_time": 2.003134342662075e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        },
+        "Gemini-1.5-Flash": {
+          "player_name": "Gemini-1.5-Flash",
+          "total_decisions": 79,
+          "success_rate": 0.0,
+          "avg_decision_time": 2.0150896869128262e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        }
+      },
+      "timestamp": "2025-07-21T00:39:15.472171",
+      "detailed_stats": {
+        "total_turns": 81,
+        "final_scores": {
+          "RED": 0,
+          "BLUE": 0,
+          "WHITE": 0,
+          "ORANGE": 0
+        }
+      }
+    },
+    {
+      "game_id": "M00_G01",
+      "matchup_index": 0,
+      "game_number": 1,
+      "players": [
+        {
+          "name": "GPT-4o-mini",
+          "type": "llm",
+          "color": "RED",
+          "model": "gpt-4o-mini"
+        },
+        {
+          "name": "Claude-3.5-Haiku",
+          "type": "llm",
+          "color": "WHITE",
+          "model": "claude-3-5-haiku-20241022"
+        },
+        {
+          "name": "Gemini-1.5-Flash",
+          "type": "llm",
+          "color": "ORANGE",
+          "model": "gemini-1.5-flash"
+        },
+        {
+          "name": "Random_0",
+          "type": "random",
+          "color": "BLUE",
+          "model": "RandomPlayer"
+        }
+      ],
+      "winner": {
+        "name": "Claude-3.5-Haiku",
+        "color": "WHITE"
+      },
+      "duration_seconds": 0.03059101104736328,
+      "player_performance": {
+        "GPT-4o-mini": {
+          "player_name": "GPT-4o-mini",
+          "total_decisions": 202,
+          "success_rate": 0.0,
+          "avg_decision_time": 1.430511474609375e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        },
+        "Claude-3.5-Haiku": {
+          "player_name": "Claude-3.5-Haiku",
+          "total_decisions": 188,
+          "success_rate": 0.0,
+          "avg_decision_time": 1.3797841173537234e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        },
+        "Gemini-1.5-Flash": {
+          "player_name": "Gemini-1.5-Flash",
+          "total_decisions": 152,
+          "success_rate": 0.0,
+          "avg_decision_time": 1.7313580763967413e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        }
+      },
+      "timestamp": "2025-07-21T00:39:15.503429",
+      "detailed_stats": {
+        "total_turns": 230,
+        "final_scores": {
+          "RED": 0,
+          "BLUE": 0,
+          "WHITE": 0,
+          "ORANGE": 0
+        }
+      }
+    },
+    {
+      "game_id": "M00_G02",
+      "matchup_index": 0,
+      "game_number": 2,
+      "players": [
+        {
+          "name": "GPT-4o-mini",
+          "type": "llm",
+          "color": "ORANGE",
+          "model": "gpt-4o-mini"
+        },
+        {
+          "name": "Claude-3.5-Haiku",
+          "type": "llm",
+          "color": "WHITE",
+          "model": "claude-3-5-haiku-20241022"
+        },
+        {
+          "name": "Gemini-1.5-Flash",
+          "type": "llm",
+          "color": "RED",
+          "model": "gemini-1.5-flash"
+        },
+        {
+          "name": "Random_0",
+          "type": "random",
+          "color": "BLUE",
+          "model": "RandomPlayer"
+        }
+      ],
+      "winner": {
+        "name": "GPT-4o-mini",
+        "color": "ORANGE"
+      },
+      "duration_seconds": 0.03439521789550781,
+      "player_performance": {
+        "GPT-4o-mini": {
+          "player_name": "GPT-4o-mini",
+          "total_decisions": 274,
+          "success_rate": 0.0,
+          "avg_decision_time": 1.1616379675203866e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        },
+        "Claude-3.5-Haiku": {
+          "player_name": "Claude-3.5-Haiku",
+          "total_decisions": 247,
+          "success_rate": 0.0,
+          "avg_decision_time": 1.0906443422139898e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        },
+        "Gemini-1.5-Flash": {
+          "player_name": "Gemini-1.5-Flash",
+          "total_decisions": 271,
+          "success_rate": 0.0,
+          "avg_decision_time": 1.2405684073472815e-05,
+          "retry_rate": 0.0,
+          "fallback_rate": 1.0
+        }
+      },
+      "timestamp": "2025-07-21T00:39:15.538059",
+      "detailed_stats": {
+        "total_turns": 372,
+        "final_scores": {
+          "RED": 0,
+          "BLUE": 0,
+          "WHITE": 0,
+          "ORANGE": 0
+        }
+      }
+    }
+  ],
+  "analysis": {
+    "total_games": 3,
+    "successful_games": 3,
+    "failed_games": 0,
+    "success_rate": 1.0,
+    "win_counts": {
+      "Gemini-1.5-Flash": 1,
+      "Claude-3.5-Haiku": 1,
+      "GPT-4o-mini": 1
+    },
+    "average_game_duration": 0.027570009231567383,
+    "total_tournament_duration": 0.08271002769470215
+  },
+  "player_stats": {
+    "GPT-4o-mini": {
+      "games_played": 3,
+      "wins": 1,
+      "win_rate": 0.3333333333333333,
+      "avg_decision_time": 1.1616379675203866e-05,
+      "total_decision_time": 5.227015339172173e-05,
+      "model": "gpt-4o-mini",
+      "type": "llm"
+    },
+    "Claude-3.5-Haiku": {
+      "games_played": 3,
+      "wins": 1,
+      "win_rate": 0.3333333333333333,
+      "avg_decision_time": 1.0906443422139898e-05,
+      "total_decision_time": 4.473562802229789e-05,
+      "model": "claude-3-5-haiku-20241022",
+      "type": "llm"
+    },
+    "Gemini-1.5-Flash": {
+      "games_played": 3,
+      "wins": 1,
+      "win_rate": 0.3333333333333333,
+      "avg_decision_time": 1.2405684073472815e-05,
+      "total_decision_time": 4.9870161706568493e-05,
+      "model": "gemini-1.5-flash",
+      "type": "llm"
+    },
+    "Random_0": {
+      "games_played": 3,
+      "wins": 0,
+      "win_rate": 0.0,
+      "avg_decision_time": 0.0,
+      "total_decision_time": 0.0,
+      "model": "RandomPlayer",
+      "type": "random"
+    }
+  },
+  "matchup_analysis": {
+    "Claude-3.5-Haiku_vs_GPT-4o-mini_vs_Gemini-1.5-Flash_vs_Random_0": {
+      "players": [
+        "Claude-3.5-Haiku",
+        "GPT-4o-mini",
+        "Gemini-1.5-Flash",
+        "Random_0"
+      ],
+      "games": 3,
+      "wins": {
+        "GPT-4o-mini": 1,
+        "Claude-3.5-Haiku": 1,
+        "Gemini-1.5-Flash": 1,
+        "Random_0": 0
+      }
+    }
+  },
+  "tournament_info": {
+    "name": "Simple LLM Catan Tournament",
+    "id": "20250721_003915",
+    "format": "round_robin",
+    "games_per_matchup": 3,
+    "total_games": 0,
+    "duration_seconds": 0.08459997177124023,
+    "players": [
+      "GPT-4o-mini",
+      "Claude-3.5-Haiku",
+      "Gemini-1.5-Flash"
+    ]
+  }
+}
