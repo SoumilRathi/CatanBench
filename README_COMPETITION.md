@@ -57,7 +57,7 @@ The competition generates comprehensive results:
 ### 📊 Rankings
 Models are ranked by **Competence Score** (0-1 scale):
 ```
-1. Claude Sonnet 4
+1. Kimi K2
    Win Rate: 66.7% (2/3 wins)  
    ELO Rating: 1547
    Competence Score: 0.847
@@ -128,16 +128,6 @@ Core Components:
 └── catanatron/           # Core Catan game engine
 ```
 
-## Cost Estimation
-
-Typical competition cost (3 games):
-- GPT-5: ~$0.15-0.30
-- Claude Sonnet 4: ~$0.10-0.20  
-- Gemini 2.5 Pro: ~$0.05-0.15
-- Kimi K2: ~$0.05-0.12
-
-**Total: ~$0.35-0.77 per full competition**
-
 ## Troubleshooting
 
 ### API Issues
@@ -151,8 +141,8 @@ Typical competition cost (3 games):
 - Comprehensive logging in `tournament.log`
 
 ### Performance
-- Each game typically takes 2-5 minutes
-- Full competition: 15-30 minutes depending on API speeds
+- Each game typically takes 20-50 minutes
+- Full competition: 1-3hours depending on API speeds
 - Results saved incrementally to prevent data loss
 
 ---
