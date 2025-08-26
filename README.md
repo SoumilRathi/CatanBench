@@ -105,23 +105,18 @@ Results are saved in `tournament_results/` (git-ignored by default):
 - `tournament_summary_*.csv` - Game summary for analysis  
 - `tournament.log` - Execution logs
 
-### 🧪 **Testing Strategy**
-- Mock LLM clients for development (`test_benchmark.py`)
-- Real API integration tests (with cost controls)
-- Comprehensive error handling and fallback testing
-
 ## Supported LLMs
 
-- OpenAI GPT (3.5, 4, 4-turbo)
-- Anthropic Claude (3 Haiku, Sonnet, Opus)
-- Google Gemini (Pro, Ultra)
-- Custom models via API endpoints
+- GPT 5
+- Claude 4 Sonnet
+- Gemini 2.5 Pro
+- Kimi K2
 
 ## Game Features
 
 - ✅ Settlement and city building
 - ✅ Road construction  
-- ✅ Resource trading (maritime and player-to-player)
+- ✅ Resource trading (maritime for now)
 - ✅ Development cards (Knight, Year of Plenty, etc.)
 - ✅ Robber movement and resource stealing
 - ✅ Victory point tracking
