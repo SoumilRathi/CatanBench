@@ -25,14 +25,9 @@ A comprehensive benchmark system for evaluating Large Language Models (LLMs) pla
    # Edit .env with your API keys
    ```
 
-3. **Run a Simple Tournament**:
+3. **Run the Competition Tournament**:
    ```bash
-   python examples/simple_tournament.py
-   ```
-
-4. **Test the System**:
-   ```bash
-   python test_benchmark.py
+   python competition_tournament.py
    ```
 
 ## Codebase Architecture & Navigation
@@ -83,10 +78,9 @@ A comprehensive benchmark system for evaluating Large Language Models (LLMs) pla
 
 ### 🎯 **Key Entry Points**
 
-1. **For Simple Usage**: `examples/simple_tournament.py`
-2. **For Testing**: `test_benchmark.py`  
-3. **Core LLM Player**: `core/llm_player.py` → `LLMPlayer` class
-4. **Tournament Management**: `tournament/manager.py` → `TournamentManager` class
+1. **Competition Tournament**: `competition_tournament.py`
+2. **Core LLM Player**: `core/llm_player.py` → `LLMPlayer` class
+3. **Tournament Management**: `tournament/manager.py` → `TournamentManager` class
 
 ### 🔄 **How It All Works Together**
 
