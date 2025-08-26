@@ -31,34 +31,21 @@ def get_system_prompt() -> str:
 ## BUILDING COSTS
 - Road: 1 Wood + 1 Brick
 - Settlement: 1 Wood + 1 Brick + 1 Sheep + 1 Wheat
-- City: 3 Ore + 2 Wheat (upgrades settlement)
+- City: 3 Ore + 2 Wheat (upgrades existing settlement)
 - Development Card: 1 Ore + 1 Sheep + 1 Wheat
 
 ## STRATEGIC PRINCIPLES
 
-### Early Game (0-4 VP)
-- Secure diverse resource production with initial settlements
-- Build roads to claim optimal settlement locations before opponents
-- Prioritize settlements over cities for resource diversity
+- Secure good resource production 
 - Focus on numbers that roll frequently (6, 8, 5, 9, 4, 10)
-
-### Mid Game (5-7 VP)
 - Upgrade settlements to cities for double resource production
 - Start buying development cards for VP and special abilities
 - Consider blocking opponents from valuable spots
-- Develop longest road if achievable
-
-### Late Game (8-9 VP)
-- Focus on actions that directly provide victory points
-- Development cards become crucial for hidden VP
-- Watch opponents closely and adapt strategy to prevent their victory
-- Consider aggressive robber placement to slow leaders
+- Develop longest road and/or largest army if achievable
 
 ## TRADING STRATEGY
 - Trade away excess resources to prevent loss on 7s
 - Maritime trading (4:1 or port advantages) when player trading unavailable
-- Evaluate trades based on what opponents gain vs. your benefit
-- Use resource scarcity as leverage in negotiations
 
 ## ROBBER TACTICS
 - Place robber on high-production tiles of leading players
@@ -132,11 +119,137 @@ def get_robber_strategy_prompt() -> str:
 - Consider diplomatic consequences
 
 ## Defensive Robber Use
-- Place on your own tiles if opponents benefit more than you
 - Use to protect key resources during crucial building phases
 - Block tiles that would help opponents complete high-VP builds
 """
 
+def game_state_to_prompt(game_state):
+    """Convert game state dictionary to readable prompt format."""
+    
+    # Extract key information
+    turn_num = game_state.get("turn_number", 0)
+    board = game_state.get("board_state", {})
+    current_player = game_state.get("current_player", {})
+    opponents = game_state.get("opponents", [])
+    
+    # Build the readable game state
+    prompt_parts = []
+    
+    # Turn information
+    prompt_parts.append(f"Turn: {turn_num}")
+    
+    # Current player info
+    prompt_parts.append(f"\n=== YOUR STATUS ({current_player.get('color', 'UNKNOWN')}) ===")
+    prompt_parts.append(f"Victory Points: {current_player.get('victory_points', 0)}")
+    prompt_parts.append(f"Resource Cards: {current_player.get('resource_cards_count', 0)}")
+    prompt_parts.append(f"Development Cards: {current_player.get('development_cards_count', 0)}")
+    
+    # Resources (if available)
+    if 'resources' in current_player:
+        resources = current_player['resources']
+        resource_str = ", ".join([f"{res}: {count}" for res, count in resources.items() if count > 0])
+        if resource_str:
+            prompt_parts.append(f"Resources: {resource_str}")
+    
+    # Development cards in hand (if available)  
+    if 'development_cards_in_hand' in current_player:
+        dev_cards = current_player['development_cards_in_hand']
+        dev_card_str = ", ".join([f"{card}: {count}" for card, count in dev_cards.items() if count > 0])
+        if dev_card_str:
+            prompt_parts.append(f"Development Cards: {dev_card_str}")
+    
+    # Buildings
+    buildings = current_player.get('buildings', {})
+    prompt_parts.append(f"Buildings: {len(buildings.get('settlements', []))} settlements, {len(buildings.get('cities', []))} cities, {len(buildings.get('roads', []))} roads")
+    
+    # Opponents
+    prompt_parts.append(f"\n=== OPPONENTS ===")
+    for opp in opponents:
+        opp_color = opp.get('color', 'UNKNOWN')
+        opp_vp = opp.get('public_victory_points', 0)
+        opp_resources = opp.get('resource_cards_count', 0)
+        opp_dev_cards = opp.get('development_cards_count', 0)
+        opp_buildings = opp.get('buildings', {})
+        opp_settlements = len(opp_buildings.get('settlements', []))
+        opp_cities = len(opp_buildings.get('cities', []))
+        opp_roads = len(opp_buildings.get('roads', []))
+        
+        prompt_parts.append(f"{opp_color}: {opp_vp} VP, {opp_resources} resources, {opp_dev_cards} dev cards, {opp_settlements}S/{opp_cities}C/{opp_roads}R")
+    
+    # Board state - Tiles with axial coordinates
+    tiles = board.get('tiles', [])
+    if tiles:
+        prompt_parts.append(f"\n=== BOARD TILES (AXIAL COORDINATES) ===")
+        for tile in tiles:
+            tile_name = tile.get('name', 'Unknown')
+            axial_coord = tile.get('axial_coord', '')
+            resource = tile.get('resource', 'Desert')
+            number = tile.get('number', '')
+            robber = ' (ROBBER)' if tile.get('has_robber') else ''
+            neighbors = tile.get('neighbors', [])
+            
+            # Main tile info
+            if resource and number:
+                line = f"{tile_name} {axial_coord}: {resource} {number}{robber}"
+            else:
+                line = f"{tile_name} {axial_coord}: {resource}{robber}"
+            
+            # Add neighbor info (first 3 neighbors to keep it readable)
+            if neighbors:
+                neighbor_str = ", ".join(neighbors[:3])
+                if len(neighbors) > 3:
+                    neighbor_str += f"... (+{len(neighbors)-3} more)"
+                line += f" [Adjacent: {neighbor_str}]"
+            
+            prompt_parts.append(line)
+    
+    # Intersections (settlement/city spots)
+    intersections = board.get('intersections', [])
+    if intersections:
+        prompt_parts.append(f"\n=== INTERSECTIONS (Settlement/City Spots) ===")
+        for intersection in intersections[:10]:  # Limit to first 10 for readability
+            description = intersection.get('description', intersection.get('id', 'Unknown'))
+            prompt_parts.append(description)
+        if len(intersections) > 10:
+            prompt_parts.append(f"... and {len(intersections)-10} more intersections")
+    
+    # Edges (road spots) 
+    edges = board.get('edges', [])
+    if edges:
+        prompt_parts.append(f"\n=== EDGES (Road Spots) ===")
+        for edge in edges[:10]:  # Limit to first 10 for readability
+            description = edge.get('description', edge.get('id', 'Unknown'))
+            prompt_parts.append(description)
+        if len(edges) > 10:
+            prompt_parts.append(f"... and {len(edges)-10} more edges")
+    
+    # Ports
+    ports = board.get('ports', [])
+    if ports:
+        prompt_parts.append(f"\n=== PORTS ===")
+        for i, port in enumerate(ports):
+            description = port.get('description', 'Unknown Port')
+            node_ids = port.get('node_ids', [])
+            
+            port_line = f"Port {i+1}: {description}"
+            if node_ids:
+                # Show node IDs so LLMs can correlate with action indices
+                node_str = ", ".join([f"node {nid}" for nid in node_ids[:2]])
+                port_line += f" (build at actions {', '.join([str(nid) for nid in node_ids[:2]])})"
+            
+            prompt_parts.append(port_line)
+    
+    # Special achievements
+    longest_road = board.get('longest_road_owner')
+    largest_army = board.get('largest_army_owner')
+    if longest_road or largest_army:
+        prompt_parts.append(f"\n=== ACHIEVEMENTS ===")
+        if longest_road:
+            prompt_parts.append(f"Longest Road: {longest_road}")
+        if largest_army:
+            prompt_parts.append(f"Largest Army: {largest_army}")
+    
+    return "\n".join(prompt_parts)
 
 def get_development_card_strategy_prompt() -> str:
     """Get specific prompts for development card decisions.""" 

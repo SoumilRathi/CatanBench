@@ -3,3 +3,24 @@
 
 # existing repo
 catanatron/
+
+# env and OS
+.env.*
+*.env
+__pycache__/
+*.pyc
+.DS_Store
+.catanbench_cache/
+
+# venvs
+catanbench_env/
+.venv/
+venv/
+
+# generated results/logs
+tournament_results/
+visual_tournament_results/
+test_results/
+**/*.log
+**/*.json
+tournament_results/visualizations/

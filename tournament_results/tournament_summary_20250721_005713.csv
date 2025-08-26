@@ -1,4 +1,0 @@
-game_id,winner,winner_color,duration,players,success
-M00_G00,Gemini-1.5-Flash,RED,0.6629292964935303,"GPT-4o-mini, Claude-3.5-Haiku, Gemini-1.5-Flash, Random_0",True
-M00_G01,Claude-3.5-Haiku,BLUE,0.31319522857666016,"GPT-4o-mini, Claude-3.5-Haiku, Gemini-1.5-Flash, Random_0",True
-M00_G02,Random_0,ORANGE,0.758721113204956,"GPT-4o-mini, Claude-3.5-Haiku, Gemini-1.5-Flash, Random_0",True

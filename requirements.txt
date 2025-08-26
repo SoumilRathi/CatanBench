@@ -3,7 +3,14 @@ anthropic>=0.18.0
 google-generativeai>=0.3.0
 python-dotenv>=1.0.0
 pandas>=1.5.0
-numpy>=1.21.0
+numpy==2.3.1
 matplotlib>=3.5.0
 seaborn>=0.11.0
 tqdm>=4.64.0
+# catanatron installed from local source
+groq>=0.30.0
+
+# Web interface dependencies for real-time tournament viewing
+aiohttp>=3.8.0
+python-socketio>=5.8.0
+websockets>=11.0.0

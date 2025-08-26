@@ -54,7 +54,7 @@ class TournamentManager:
         self.config = {
             "games_per_matchup": 5,
             "timeout_per_game": 600,  # 10 minutes
-            "shuffle_colors": True,
+            "shuffle_colors": False,  # Fixed: Disable color shuffling to maintain consistent player assignments
             "detailed_logging": True
         }
         
@@ -182,22 +182,20 @@ class TournamentManager:
             self.logger.info(f"Starting matchup {matchup_idx + 1}/{len(matchups)}: {player_combo}")
             
             for game_num in range(games_per_matchup):
-                try:
-                    game_result = self._play_single_game(
-                        player_combo, 
-                        matchup_idx, 
-                        game_num,
-                        save_games
-                    )
-                    game_results.append(game_result)
-                    
-                    # Log progress
-                    completed_games = len(game_results)
-                    progress = (completed_games / total_games) * 100
-                    self.logger.info(f"Game {completed_games}/{total_games} completed ({progress:.1f}%)")
-                    
-                except Exception as e:
-                    self.logger.error(f"Game failed in matchup {matchup_idx}, game {game_num}: {e}")
+                game_result = self._play_single_game(
+                    player_combo, 
+                    matchup_idx, 
+                    game_num,
+                    save_games
+                )
+                game_results.append(game_result)
+                
+                # Log progress
+                completed_games = len(game_results)
+                progress = (completed_games / total_games) * 100
+                self.logger.info(f"Game {completed_games}/{total_games} completed ({progress:.1f}%)")
+                
+                
                     # Continue with next game instead of failing entire tournament
         
         # Analyze results
@@ -273,15 +271,83 @@ class TournamentManager:
         start_time = time.time()
         try:
             game = Game(players)
+            
+            # Save game for visualization if requested
+            if save_detailed:
+                game_log_path = self.output_dir / f"game_logs/game_{game_id}.json"
+                game_log_path.parent.mkdir(exist_ok=True)
+                
             winner_color = game.play()
             game_duration = time.time() - start_time
+
+            print("Game finished in ", game_duration, " seconds")
             
-            # Determine winner
-            winner_name = None
-            for info in player_info:
-                if info["color"] == winner_color.value:
-                    winner_name = info["name"]
-                    break
+            # Extract final scores first (needed for winner determination and logging)
+            final_scores = self._extract_final_scores(game)
+            
+            # Determine winner - handle both 10 VP wins and highest VP at turn limit
+            winner_names = []
+            winner_color_values = []
+            
+            if winner_color:
+                # Traditional win (reached 10 VPs)
+                for info in player_info:
+                    if info["color"] == winner_color.value:
+                        winner_names = [info["name"]]
+                        winner_color_values = [winner_color.value]
+                        break
+            else:
+                # Game ended at turn limit - find player(s) with highest VP
+                if final_scores:
+                    max_vp = max(final_scores.values())
+                    winning_colors = [color for color, vp in final_scores.items() if vp == max_vp]
+                    
+                    for info in player_info:
+                        if info["color"] in winning_colors:
+                            winner_names.append(info["name"])
+                            winner_color_values.append(info["color"])
+            
+            # Set winner info (single winner or tie)
+            winner_name = winner_names if not winner_names else (winner_names[0] if len(winner_names) == 1 else winner_names)
+            is_tie = len(winner_names) > 1
+
+            print("Game winner: ", winner_names)
+            
+            # Save game log for visualization
+            if save_detailed:
+                try:
+                    import json
+                    
+                    # Simple JSON serializer that handles common types and avoids recursion
+                    def json_serializer(obj):
+                        if hasattr(obj, 'value'):  # Enum objects like Color
+                            return obj.value
+                        elif hasattr(obj, '__dict__'):  # Convert objects to their string representation
+                            return str(obj)
+                        else:
+                            return str(obj)
+                    
+                    # Create simplified game data that avoids complex nested objects
+                    game_data = {
+                        "game_id": game_id,
+                        "players": [{"name": p["name"], "color": p["color"] if isinstance(p["color"], str) else p["color"].value, "final_vp": final_scores.get(p["color"] if isinstance(p["color"], str) else p["color"].value, 0)} for p in player_info],
+                        "winner": winner_names if winner_names else None,
+                        "is_tie": is_tie,
+                        "duration": game_duration,
+                        "total_turns": getattr(game.state, 'num_turns', 0) if hasattr(game, 'state') else 0,
+                        "final_scores": final_scores
+                    }
+                    
+                    # Only add action log if it exists and is small enough
+                    action_log = getattr(game, 'action_log', [])
+                    if action_log and len(action_log) < 1000:  # Limit action log size
+                        game_data["actions"] = action_log
+                    
+                    with open(game_log_path, 'w') as f:
+                        json.dump(game_data, f, indent=2, default=json_serializer)
+                    self.logger.info(f"Game log saved: {game_log_path}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to save game log: {e}")
             
             # Collect player performance stats
             player_stats = {}
@@ -290,15 +356,24 @@ class TournamentManager:
                     stats = player.get_performance_summary()
                     player_stats[stats.get("player_name", "unknown")] = stats
             
+            # Add final scores to player info
+            enhanced_player_info = []
+            for info in player_info:
+                enhanced_info = info.copy()
+                enhanced_info["final_vp"] = final_scores.get(info["color"], 0)
+                enhanced_player_info.append(enhanced_info)
+            
             result = {
                 "game_id": game_id,
                 "matchup_index": matchup_idx,
                 "game_number": game_num,
-                "players": player_info,
+                "players": enhanced_player_info,
                 "winner": {
                     "name": winner_name,
-                    "color": winner_color.value
-                },
+                    "color": winner_color_values[0] if len(winner_color_values) == 1 else winner_color_values,
+                    "is_tie": is_tie,
+                    "vp_score": max(final_scores.values()) if final_scores else 0
+                } if winner_names else None,
                 "duration_seconds": game_duration,
                 "player_performance": player_stats,
                 "timestamp": datetime.now().isoformat()
@@ -311,7 +386,16 @@ class TournamentManager:
                     "final_scores": self._extract_final_scores(game)
                 }
             
-            self.logger.info(f"Game {game_id} completed: Winner {winner_name} ({winner_color.value}) in {game_duration:.2f}s")
+            # Create appropriate winner info for logging
+            if is_tie:
+                winner_info = f"TIE: {', '.join(winner_names)} ({max(final_scores.values())} VP each)"
+            elif winner_names:
+                vp_score = max(final_scores.values()) if final_scores else "10+"
+                winner_info = f"{winner_name} ({winner_color_values[0] if winner_color_values else 'N/A'}) - {vp_score} VP"
+            else:
+                winner_info = "No winner"
+            
+            self.logger.info(f"Game {game_id} completed: {winner_info} in {game_duration:.2f}s")
             return result
             
         except Exception as e:
@@ -335,8 +419,9 @@ class TournamentManager:
         try:
             for color in [Color.RED, Color.BLUE, Color.WHITE, Color.ORANGE]:
                 from catanatron.state_functions import player_key
-                player_state = game.state.player_state.get(player_key(game.state, color), {})
-                vp = player_state.get("VICTORY_POINTS", 0)
+                player_prefix = player_key(game.state, color)
+                vp_key = f"{player_prefix}_VICTORY_POINTS"
+                vp = game.state.player_state.get(vp_key, 0)
                 scores[color.value] = vp
         except Exception as e:
             self.logger.warning(f"Could not extract final scores: {e}")
@@ -348,12 +433,23 @@ class TournamentManager:
         successful_games = len([g for g in game_results if g.get("winner")])
         failed_games = total_games - successful_games
         
-        # Win rates
+        # Win rates (handle ties)
         wins = {}
+        ties = 0
         for result in game_results:
-            if result.get("winner"):
-                winner = result["winner"]["name"]
-                wins[winner] = wins.get(winner, 0) + 1
+            winner_info = result.get("winner")
+            if winner_info:
+                winner_name = winner_info.get("name")
+                is_tie = winner_info.get("is_tie", False)
+                
+                if is_tie and isinstance(winner_name, list):
+                    # Tie - give partial wins to each tied player
+                    ties += 1
+                    for tied_player in winner_name:
+                        wins[tied_player] = wins.get(tied_player, 0) + (1.0 / len(winner_name))
+                elif not is_tie and isinstance(winner_name, str):
+                    # Single winner
+                    wins[winner_name] = wins.get(winner_name, 0) + 1
         
         # Average game duration
         durations = [g["duration_seconds"] for g in game_results]
@@ -365,6 +461,7 @@ class TournamentManager:
             "failed_games": failed_games,
             "success_rate": successful_games / total_games if total_games > 0 else 0,
             "win_counts": wins,
+            "ties": ties,
             "average_game_duration": avg_duration,
             "total_tournament_duration": sum(durations)
         }
@@ -389,8 +486,18 @@ class TournamentManager:
                 
                 player_stats[name]["games_played"] += 1
                 
-                if result.get("winner") and result["winner"]["name"] == name:
-                    player_stats[name]["wins"] += 1
+                # Handle wins (including ties)
+                winner_info = result.get("winner")
+                if winner_info:
+                    winner_name = winner_info.get("name")
+                    is_tie = winner_info.get("is_tie", False)
+                    
+                    if is_tie and isinstance(winner_name, list) and name in winner_name:
+                        # Tie - give partial win
+                        player_stats[name]["wins"] += (1.0 / len(winner_name))
+                    elif not is_tie and winner_name == name:
+                        # Full win
+                        player_stats[name]["wins"] += 1
                 
                 # Add performance data if available
                 perf_data = result.get("player_performance", {}).get(name, {})
@@ -421,10 +528,22 @@ class TournamentManager:
                 }
             
             matchup_data[matchup_key]["games"] += 1
-            if result.get("winner"):
-                winner = result["winner"]["name"]
-                if winner in matchup_data[matchup_key]["wins"]:
-                    matchup_data[matchup_key]["wins"][winner] += 1
+            
+            # Handle wins (including ties)
+            winner_info = result.get("winner")
+            if winner_info:
+                winner_name = winner_info.get("name")
+                is_tie = winner_info.get("is_tie", False)
+                
+                if is_tie and isinstance(winner_name, list):
+                    # Tie - give partial wins
+                    for tied_player in winner_name:
+                        if tied_player in matchup_data[matchup_key]["wins"]:
+                            matchup_data[matchup_key]["wins"][tied_player] += (1.0 / len(winner_name))
+                elif not is_tie and isinstance(winner_name, str):
+                    # Single winner
+                    if winner_name in matchup_data[matchup_key]["wins"]:
+                        matchup_data[matchup_key]["wins"][winner_name] += 1
         
         return matchup_data
     
@@ -444,13 +563,21 @@ class TournamentManager:
             # Create game summary DataFrame
             game_data = []
             for game in results["games"]:
+                winner = game.get("winner")
+                winner_name = "Failed"
+                winner_color = "None"
+                
+                if winner and isinstance(winner, dict):
+                    winner_name = winner.get("name", "Unknown")
+                    winner_color = winner.get("color", "None")
+                
                 game_data.append({
                     "game_id": game["game_id"],
-                    "winner": game.get("winner", {}).get("name", "Failed"),
-                    "winner_color": game.get("winner", {}).get("color", "None"),
+                    "winner": winner_name,
+                    "winner_color": winner_color,
                     "duration": game["duration_seconds"],
-                    "players": ", ".join([p["name"] for p in game["players"]]),
-                    "success": game.get("winner") is not None
+                    "players": ", ".join([p["name"] for p in game.get("players", [])]),
+                    "success": winner is not None
                 })
             
             df = pd.DataFrame(game_data)

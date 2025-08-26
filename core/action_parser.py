@@ -7,6 +7,7 @@ human-readable descriptions and parse LLM responses back into actions.
 
 from typing import Dict, List, Any, Optional, Tuple
 from catanatron.models.enums import Action, ActionType, RESOURCES, DEVELOPMENT_CARDS
+from .axial_mapper import HexAxialMapper
 
 
 class ActionParser:
@@ -17,8 +18,9 @@ class ActionParser:
     their responses back into valid Catanatron Action objects.
     """
     
-    def __init__(self):
+    def __init__(self, hex_mapper: Optional[HexAxialMapper] = None):
         """Initialize the action parser with description templates."""
+        self.hex_mapper = hex_mapper or HexAxialMapper()
         self.action_descriptions = {
             ActionType.ROLL: "Roll the dice to start your turn",
             ActionType.END_TURN: "End your current turn",
@@ -49,12 +51,30 @@ class ActionParser:
             Dictionary mapping action indices to descriptions
         """
         descriptions = {}
+        self.hex_mapper.clear_action_mappings()
         
         for i, action in enumerate(actions):
-            description = self._describe_single_action(action)
-            descriptions[i] = description
+            # Create human-readable description using hex mapper
+            readable_description = self._create_axial_description(action, i)
+            descriptions[i] = readable_description
+            
+            # Register mapping for LLM lookup
+            self.hex_mapper.register_action_mapping(i, readable_description)
             
         return descriptions
+    
+    def get_readable_action_descriptions(self, actions: List[Action]) -> Dict[int, str]:
+        """Get readable action descriptions for display to LLM."""
+        readable_descriptions = {}
+        
+        for i, action in enumerate(actions):
+            readable_desc = self.hex_mapper.get_action_description(i)
+            if readable_desc:
+                readable_descriptions[i] = readable_desc
+            else:
+                readable_descriptions[i] = self._create_axial_description(action, i)
+                
+        return readable_descriptions
     
     def _describe_single_action(self, action: Action) -> str:
         """
@@ -81,8 +101,95 @@ class ActionParser:
         # Handle specific action types with parameter substitution
         try:
             return self._format_action_description(action_type, template, value)
-        except Exception as e:
+        except Exception:
             return f"{action_type.value}: {value}"
+    
+    def _create_axial_description(self, action: Action, action_index: int) -> str:
+        """Create human-readable description using axial coordinate system."""
+        action_type = action.action_type
+        value = action.value
+        
+        try:
+            if action_type == ActionType.BUILD_SETTLEMENT:
+                # Map action index to intersection description
+                intersection_desc = self._get_intersection_for_action(action_index)
+                if intersection_desc:
+                    return f"Build settlement at {intersection_desc}"
+                else:
+                    return f"Build settlement at intersection {action_index} (node {value})"
+            
+            elif action_type == ActionType.BUILD_ROAD:
+                # Map action index to edge description
+                edge_desc = self._get_edge_for_action(action_index)
+                if edge_desc:
+                    return f"Build road: {edge_desc}"
+                else:
+                    return f"Build road at edge {action_index} (edge {value})"
+            
+            elif action_type == ActionType.BUILD_CITY:
+                # Map action index to intersection description  
+                intersection_desc = self._get_intersection_for_action(action_index)
+                if intersection_desc:
+                    return f"Upgrade to city at {intersection_desc}"
+                else:
+                    return f"Upgrade to city at intersection {action_index} (node {value})"
+            
+            elif action_type == ActionType.MOVE_ROBBER:
+                # Handle robber movement with tile coordinate
+                if isinstance(value, (list, tuple)) and len(value) >= 3:
+                    cube_coord = tuple(value[:3])
+                    axial_coord = self.hex_mapper.cube_to_axial(cube_coord)
+                    if axial_coord in self.hex_mapper.tiles:
+                        tile_name = self.hex_mapper.tiles[axial_coord].name
+                        return f"Move robber to {tile_name}"
+                    else:
+                        return f"Move robber to coordinate {axial_coord}"
+                else:
+                    return f"Move robber (action {action_index})"
+            
+            else:
+                # For other actions, use basic description
+                if action_type == ActionType.ROLL:
+                    return "Roll dice to start turn"
+                elif action_type == ActionType.END_TURN:
+                    return "End turn"
+                elif action_type == ActionType.BUY_DEVELOPMENT_CARD:
+                    return "Buy development card"
+                else:
+                    return f"{action_type.name.replace('_', ' ').title()}"
+                
+        except Exception as e:
+            # Fallback description
+            return f"Action {action_index}: {action_type.name}"
+    
+    def _get_intersection_for_action(self, action_index: int) -> Optional[str]:
+        """Get intersection description for settlement/city action index."""
+        # Direct mapping: action index to intersection ID (assuming action_index = node_id)
+        intersection_id = f"I{action_index}"
+        
+        # If we have this intersection, return its description
+        if intersection_id in self.hex_mapper.intersections:
+            return self.hex_mapper.get_intersection_description(intersection_id)
+        
+        # Check if this action corresponds to a port intersection
+        if intersection_id in self.hex_mapper.port_intersections:
+            port_info = self.hex_mapper.port_intersections[intersection_id]
+            port_str = ", ".join(port_info)
+            return f"{intersection_id}: Port settlement spot - Provides access to {port_str}"
+        
+        # For intersections we haven't mapped yet, show a descriptive fallback
+        return f"{intersection_id}: Settlement spot (node {action_index})"
+    
+    def _get_edge_for_action(self, action_index: int) -> Optional[str]:
+        """Get edge description for road action index."""
+        # Simple mapping: action index to edge index
+        # This assumes that road actions are ordered by edge
+        if action_index < len(self.hex_mapper.edges):
+            edge_ids = list(self.hex_mapper.edges.keys())
+            if action_index < len(edge_ids):
+                edge_id = edge_ids[action_index]
+                return self.hex_mapper.get_edge_description(edge_id)
+        return None
     
     def _format_action_description(self, action_type: ActionType, template: str, value: Any) -> str:
         """

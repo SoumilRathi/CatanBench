@@ -23,29 +23,12 @@ Based on the current game state, analyze your situation:
 - Your building capabilities: [what can you build now?]
 - Your strategic position: [are you leading, catching up, or behind?]
 
-## Opponent Threat Analysis
-- Who is closest to winning? [identify the leader]
-- What are their likely next moves? [predict opponent actions]
-- How can you disrupt their plans? [consider blocking moves]
-
 ## Action Evaluation
 For each available action, consider:
 1. **Immediate benefit**: What does this action accomplish right now?
 2. **Long-term value**: How does this improve your position over time?
 3. **Opportunity cost**: What other actions are you giving up?
 4. **Risk/reward**: What are the potential downsides?
-
-## Strategic Priorities
-Based on the game phase and your position, determine:
-- Primary objective: [what's your main goal this turn?]
-- Secondary objectives: [what else would be valuable?]
-- Risk mitigation: [what threats do you need to address?]
-
-## Decision Reasoning
-Explain your thought process:
-- Why is this action optimal given the current state?
-- How does this align with your overall strategy?
-- What do you expect to happen as a result?
 
 Choose the action that maximizes your winning probability while considering all factors above.
 """

@@ -17,6 +17,13 @@ from catanatron.models.enums import Action, ActionType
 
 from .game_state import GameStateExtractor
 from .action_parser import ActionParser
+import os
+from dotenv import load_dotenv
+from groq import Groq
+
+load_dotenv()
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
 
 
 class LLMPlayer(Player):
@@ -59,7 +66,7 @@ class LLMPlayer(Player):
         
         # Initialize helper components
         self.game_state_extractor = GameStateExtractor()
-        self.action_parser = ActionParser()
+        self.action_parser = ActionParser(self.game_state_extractor.hex_mapper)
         
         # Statistics tracking
         self.stats = {
@@ -88,42 +95,50 @@ class LLMPlayer(Player):
         """
         start_time = time.time()
         self.stats["total_decisions"] += 1
+
+        if (len(playable_actions) == 1) and ((playable_actions[0].action_type == ActionType.ROLL) or (playable_actions[0].action_type == ActionType.END_TURN)):
+            print(self.name, "selected action: ", playable_actions[0].action_type, "in", 0, "seconds")
+            self.logger.info(f"Selected action: {playable_actions[0].action_type} in {0:.2f}s")
+            return playable_actions[0]
         
         try:
             # Extract game state information
             game_state = self.game_state_extractor.extract_state(game, self.color)
-
-            print(game_state)
             
-            # Convert actions to descriptions
-            action_descriptions = self.action_parser.describe_actions(playable_actions)
-
-            print(playable_actions, action_descriptions)
+            # Convert actions to descriptions (this also registers mappings)
+            self.action_parser.describe_actions(playable_actions)
+            
+            # Get readable descriptions for the prompt
+            action_descriptions = self.action_parser.get_readable_action_descriptions(playable_actions)
             
             # Create prompt for LLM
             prompt = self._create_decision_prompt(game_state, action_descriptions)
 
-            print(prompt)
+            # print(prompt)
             
             # Query LLM with retry logic
             selected_action = self._query_llm_with_retry(prompt, playable_actions)
-
-            print(selected_action)
             
             # Update statistics
             decision_time = time.time() - start_time
             self._update_stats(decision_time, success=True)
+
+            print(self.name, "selected action: ", selected_action.action_type, "in", decision_time, "seconds")
             
             self.logger.info(f"Selected action: {selected_action.action_type} in {decision_time:.2f}s")
             return selected_action
             
         except Exception as e:
-            # Fallback to random action on any error
+            # Ultra-safe fallback - catch ANY exception and use first action
             tb = traceback.format_exc()
-            self.logger.error(f"Decision failed: {e}\nTraceback:\n{tb}\nUsing fallback action.")
+            self.logger.error(f"LLM decision failed: {e}")
+            self.logger.error(f"Full traceback:\n{tb}")
+            self.logger.warning(f"Available actions: {[a.action_type for a in playable_actions]}")
             decision_time = time.time() - start_time
             self._update_stats(decision_time, success=False)
-            return self._fallback_action(playable_actions)
+            fallback_action = self._fallback_action(playable_actions)
+            print(f"{self.name} FALLBACK selected action: {fallback_action.action_type} in {decision_time:.2f}s")
+            return fallback_action
     
     def _create_decision_prompt(self, game_state: Dict[str, Any], action_descriptions: Dict[int, str]) -> str:
         """
@@ -136,17 +151,18 @@ class LLMPlayer(Player):
         Returns:
             Formatted prompt string
         """
-        from ..prompts.system_prompts import get_system_prompt
-        from ..prompts.action_templates import get_decision_template
+        from prompts.system_prompts import get_system_prompt, game_state_to_prompt
+        from prompts.action_templates import get_decision_template
         
         system_prompt = get_system_prompt()
         decision_template = get_decision_template()
+        game_state_prompt = game_state_to_prompt(game_state)
         
         # Format the prompt with game state and actions
         prompt = f"""{system_prompt}
 
 CURRENT GAME STATE:
-{json.dumps(game_state, indent=2)}
+{game_state_prompt}
 
 AVAILABLE ACTIONS:
 {json.dumps(action_descriptions, indent=2)}
@@ -156,7 +172,8 @@ AVAILABLE ACTIONS:
 You must respond with a JSON object containing:
 {{"action_index": <integer>, "reasoning": "<explanation>"}}
 
-Where action_index is the number of the action you want to take from the list above.
+Where action_index is the number/index of the action you want to take from the list above.
+action_index must be an integer between 0 and {len(action_descriptions) - 1}, based on the index of the action in the list above.
 """
         return prompt
     
@@ -194,6 +211,7 @@ Where action_index is the number of the action you want to take from the list ab
                     self.logger.debug(f"LLM reasoning: {reasoning}")
                     return selected_action
                 else:
+                    print(prompt, response, action_index, playable_actions)
                     raise ValueError(f"Invalid action index: {action_index}")
                     
             except Exception as e:
@@ -205,6 +223,72 @@ Where action_index is the number of the action you want to take from the list ab
                     time.sleep(0.5)  # Brief delay before retry
         
         raise Exception(f"All retry attempts failed. Last error: {last_error}")
+    
+    def use_groq(prompt, is_json=False, temperature=1):
+        message_params = {  
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                },
+            ],
+            "temperature": temperature,
+            "max_completion_tokens": 1024,
+            "top_p": 1,
+            "stream": False,
+            "stop": None,
+        }
+
+        completion = groq_client.chat.completions.create(**message_params)
+
+        response = completion.choices[0].message.content
+
+        if is_json:
+            # get the response between the first { and the last }
+            response = response[response.find('{'):response.rfind('}')+1]
+            print(response)
+            response = json.loads(response)
+
+        else:
+            response = response.strip()
+
+        return response
+
+    def json_fix(self, input): 
+        prompt = f"""
+        You are a JSON fixer. 
+        
+        You have been given a piece of text that is not valid JSON. Extract the valid JSON from it and return it.
+        
+        Here is the text:
+        {input}
+
+        Return the valid JSON. Ensure you return perfect json with perfect indentation and no outside text.
+        """
+
+        response = self.use_groq(prompt)
+        response = self.clean_json(response)
+        return response
+    
+
+    def clean_json(self, json_str):
+        json_start = None
+        depth = 0
+        json_end = json_str.rfind('}')
+        for i in range(json_end, -1, -1):
+            if json_str[i] == '}':
+                depth += 1
+            elif json_str[i] == '{':
+                depth -= 1
+                if depth == 0:  
+                    json_start = i
+                    break
+        
+        if json_start is not None:
+            return json_str[json_start:json_end+1]
+        else:
+            return json_str
     
     def _parse_llm_response(self, response: str) -> tuple[int, str]:
         """
@@ -218,7 +302,14 @@ Where action_index is the number of the action you want to take from the list ab
         """
         try:
             # Try to parse as JSON first
-            parsed = json.loads(response.strip())
+            try:
+                response = self.clean_json(response)
+                parsed = json.loads(response)
+            except Exception as e:
+                print(f"Error cleaning JSON: {e}")
+                response = self.json_fix(response)
+                parsed = json.loads(response)
+            
             action_index = int(parsed.get("action_index"))
             reasoning = parsed.get("reasoning", "No reasoning provided")
             return action_index, reasoning
@@ -237,31 +328,24 @@ Where action_index is the number of the action you want to take from the list ab
         """
         Select a fallback action when LLM fails.
         
-        This uses a simple heuristic to prefer building actions over others.
+        Ultra-safe fallback that always returns the first valid action to prevent crashes.
         
         Args:
             playable_actions: List of valid actions
             
         Returns:
-            Selected Action
+            Selected Action (always the first one to be safe)
         """
         self.stats["fallback_count"] += 1
         
-        # Prefer building actions
-        building_actions = [
-            action for action in playable_actions 
-            if action.action_type in [
-                ActionType.BUILD_SETTLEMENT, 
-                ActionType.BUILD_CITY, 
-                ActionType.BUILD_ROAD,
-                ActionType.BUY_DEVELOPMENT_CARD
-            ]
-        ]
+        # Ultra-safe: always return the first action to prevent any crashes
+        if not playable_actions:
+            raise RuntimeError("No actions supplied to fallback!")
         
-        if building_actions:
-            return random.choice(building_actions)
-        else:
-            return random.choice(playable_actions)
+        # Always return the first action - this guarantees we never crash
+        fallback_action = playable_actions[0]
+        self.logger.warning(f"Using fallback action: {fallback_action.action_type}")
+        return fallback_action
     
     def _update_stats(self, decision_time: float, success: bool):
         """Update internal statistics."""

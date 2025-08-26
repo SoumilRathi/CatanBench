@@ -55,14 +55,10 @@ A comprehensive benchmark system for evaluating Large Language Models (LLMs) pla
   - Handles all action types: building, trading, development cards, etc.
   - Key method: `describe_actions(actions)` returns indexed action descriptions
 
-#### `llm_clients/` - LLM API Integrations
-- **`base_client.py`** - Abstract base class defining LLM client interface
-  - All clients must implement `query(prompt, **kwargs)` method
-  - Includes performance tracking and error handling patterns
-
-- **`openai_client.py`** - OpenAI GPT integration (GPT-4, GPT-3.5-turbo, etc.)
-- **`claude_client.py`** - Anthropic Claude integration (3.5 Sonnet, Haiku, etc.)  
-- **`gemini_client.py`** - Google Gemini integration (1.5 Pro, Flash, etc.)
+#### `models.py` - Unified LLM Clients
+- Concrete clients for OpenAI, Anthropic, Google, and OpenRouter
+- Shared `BaseLLMClient` interface and `LLMClientError`
+- Backwards-compatible aliases: `OpenAIClient`, `ClaudeClient`, `GeminiClient`
 
 #### `prompts/` - Strategic Knowledge & Prompt Engineering
 - **`system_prompts.py`** - Core Catan strategy knowledge and rules
@@ -104,13 +100,13 @@ A comprehensive benchmark system for evaluating Large Language Models (LLMs) pla
 
 ### 🛠️ **Extending the System**
 
-- **Add new LLM**: Create new client in `llm_clients/` inheriting from `BaseLLMClient`
+- **Add new LLM**: Create a new client class in `models.py` inheriting from `BaseLLMClient`
 - **Improve strategy**: Modify prompts in `prompts/system_prompts.py`
 - **New tournament format**: Extend `TournamentManager` class
 - **Custom analysis**: Add utilities to `utils/` directory
 
 ### 📊 **Output Files** 
-Results are saved in `tournament_results/`:
+Results are saved in `tournament_results/` (git-ignored by default):
 - `tournament_results_*.json` - Complete game data
 - `tournament_summary_*.csv` - Game summary for analysis  
 - `tournament.log` - Execution logs

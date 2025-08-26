@@ -13,10 +13,9 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from catanbench.core.llm_player import LLMPlayer
-from catanbench.llm_clients.openai_client import OpenAIClient
-from catanbench.llm_clients.claude_client import ClaudeClient
-from catanbench.tournament.manager import TournamentManager
+from core.llm_player import LLMPlayer
+from models import OpenAIClient, ClaudeClient
+from tournament.manager import TournamentManager
 from catanatron.models.player import Color, RandomPlayer
 
 
